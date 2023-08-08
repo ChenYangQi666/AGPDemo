@@ -40,7 +40,7 @@ abstract class AppLifecycleTask extends DefaultTask {
             for (Enumeration<JarEntry> e = jarFile.entries(); e.hasMoreElements();) {
                 JarEntry jarEntry = e.nextElement()
                 try {
-                    if (jarEntry.name.contains("IApplicationManager")) {
+                    if (isIApplicationManager(jarEntry.name)) {
                         println("111-------------*****>>>" + jarEntry.name)
                         // 先存储ApplicationLifecycleManager的字节码文件，后续需要对他进行修改
                         applicationManagerJar = file.asFile
@@ -48,7 +48,7 @@ abstract class AppLifecycleTask extends DefaultTask {
                     } else {
                         jarOutput.putNextEntry(new JarEntry(jarEntry.name))
                         jarFile.getInputStream(jarEntry).withCloseable { inputStream ->
-                            if (jarEntry.name.contains("Govee") && jarEntry.name.contains("Proxy")) {
+                            if (isIApplicationImplClass(jarEntry.name)) {
                                 println("IApplicationManager=" + jarEntry.name)
                                 iApplicationList.add(jarEntry.name)
                             }
@@ -71,7 +71,7 @@ abstract class AppLifecycleTask extends DefaultTask {
                         .replace(File.separatorChar, '/' as char)
                 jarOutput.putNextEntry(new JarEntry(relativePath))
                 new FileInputStream(file).withCloseable { inputStream ->
-                    if (relativePath.contains("Govee") && relativePath.contains("Proxy")) {
+                    if (isIApplicationImplClass(relativePath)) {
                         println("scan class in dir:" + relativePath)
                         iApplicationList.add(relativePath)
                     }
@@ -162,5 +162,13 @@ abstract class AppLifecycleTask extends DefaultTask {
             super.onMethodExit(opcode)
             println "LifeCycleTransform: -------onMethodExit------"
         }
+    }
+
+    public static boolean isIApplicationImplClass(String className) {
+        return className.contains("Govee\$\$") && className.contains("\$\$Proxy")
+    }
+
+    public static boolean isIApplicationManager(String classPath) {
+        return classPath == "com/example/agp/applifecycle/api/IApplicationManager.class"
     }
 }
