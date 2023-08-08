@@ -31,7 +31,8 @@ abstract class AppLifecycleTask extends DefaultTask {
     void taskAction() {
         println("---------TheRouter transform start-------------")
         def iApplicationList = []
-        File theManagerFile = null
+        File applicationManagerJar = null;
+        JarEntry applicationManagerJarEntry = null;
 
         OutputStream jarOutput = new JarOutputStream(new BufferedOutputStream(new FileOutputStream(getOutput().get().getAsFile())))
         allJars.get().each { file ->
@@ -39,20 +40,24 @@ abstract class AppLifecycleTask extends DefaultTask {
             for (Enumeration<JarEntry> e = jarFile.entries(); e.hasMoreElements();) {
                 JarEntry jarEntry = e.nextElement()
                 try {
-                    jarOutput.putNextEntry(new JarEntry(jarEntry.name))
-                    jarFile.getInputStream(jarEntry).withCloseable { inputStream ->
-                        if (jarEntry.name.contains("AppLike")) {
-                            println("scan class in jar ：" + jarEntry.name)
-                            iApplicationList.add(jarEntry.name)
+                    if (jarEntry.name.contains("IApplicationManager")) {
+                        println("111-------------*****>>>" + jarEntry.name)
+                        // 先存储ApplicationLifecycleManager的字节码文件，后续需要对他进行修改
+                        applicationManagerJar = file.asFile
+                        applicationManagerJarEntry = jarEntry
+                    } else {
+                        jarOutput.putNextEntry(new JarEntry(jarEntry.name))
+                        jarFile.getInputStream(jarEntry).withCloseable { inputStream ->
+                            if (jarEntry.name.contains("Govee") && jarEntry.name.contains("Proxy")) {
+                                println("IApplicationManager=" + jarEntry.name)
+                                iApplicationList.add(jarEntry.name)
+                            }
+                            jarOutput << inputStream
                         }
-                        if (jarEntry.name.contains("MyApplicationManager")) {
-                            println("111-------------*****>>>" + jarEntry.name)
-                        }
-                        jarOutput << inputStream
+                        jarOutput.closeEntry()
                     }
-                    jarOutput.closeEntry()
                 } catch (Exception e1) {
-                    //println("open jar error，" + e1.getMessage())
+                    println("open jar error，" + e1.getMessage())
                 }
             }
             jarFile.close()
@@ -66,13 +71,9 @@ abstract class AppLifecycleTask extends DefaultTask {
                         .replace(File.separatorChar, '/' as char)
                 jarOutput.putNextEntry(new JarEntry(relativePath))
                 new FileInputStream(file).withCloseable { inputStream ->
-                    if (relativePath.contains("AppLike")) {
+                    if (relativePath.contains("Govee") && relativePath.contains("Proxy")) {
                         println("scan class in dir:" + relativePath)
                         iApplicationList.add(relativePath)
-                    }
-                    if (relativePath.contains("MyApplicationManager")) {
-                        println("222-------------*****>>>" + relativePath)
-                        theManagerFile = file
                     }
                     jarOutput << inputStream
                 }
@@ -82,33 +83,33 @@ abstract class AppLifecycleTask extends DefaultTask {
 
         if (iApplicationList.empty) {
             println("iApplicationList is empty!")
-        } else {
-            if (theManagerFile != null) {
-                println("iApplicationList size=" + iApplicationList.size())
-                println("Manager class name=" + theManagerFile.name)
-                new FileInputStream(theManagerFile).withCloseable { inputStream ->
-                    ClassReader reader = new ClassReader(new FileInputStream(theManagerFile.absolutePath))
-                    // 构建一个ClassWriter对象，并设置让系统自动计算栈和本地变量大小
-                    ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_MAXS)
-                    ClassVisitor classVisitor = new AppLifecycleClassVisitor(classWriter, iApplicationList)
-                    //开始扫描class文件
-                    reader.accept(classVisitor, ClassReader.EXPAND_FRAMES)
-                    byte[] bytes = classWriter.toByteArray()
-                    println("----------------->6")
-                    jarOutput.write(bytes)
-                    println("----------------->7")
-                    jarOutput << inputStream
-                }
-            } else {
-                println("theManagerFile is empty!")
+            jarOutput.close()
+            return
+        }
+        if (applicationManagerJar != null && applicationManagerJarEntry != null) {
+            println("iApplicationList size=" + iApplicationList.size())
+            JarFile jarFile = new JarFile(applicationManagerJar)
+            jarOutput.putNextEntry(new JarEntry(applicationManagerJarEntry.name))
+            jarFile.getInputStream(applicationManagerJarEntry).withCloseable {
+                ClassReader cr = new ClassReader(it)
+                ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES)
+                ClassVisitor cv = new AppLifecycleClassVisitor(cw, iApplicationList)
+                //开始扫描class文件
+                cr.accept(cv, ClassReader.SKIP_DEBUG)
+                byte[] bytes = cw.toByteArray()
+                println("----------------->6")
+                jarOutput.write(bytes)
+                println("----------------->7")
             }
+            jarOutput.closeEntry()
+        } else {
+            println("applicationManagerJar is empty!")
         }
         jarOutput.close()
         println("---------TheRouter transform finish-------------")
     }
 
     class AppLifecycleClassVisitor extends ClassVisitor {
-
         private ClassVisitor mClassVisitor
         List<String> proxyAppLifecycleClassList
 
@@ -149,7 +150,13 @@ abstract class AppLifecycleTask extends DefaultTask {
                 def fullName = proxyClassName.replace("/", ".").substring(0, proxyClassName.length() - 6)
                 println "LifeCycleTransform: full classname = ${fullName}"
                 mv.visitLdcInsn(fullName)
-                mv.visitMethodInsn(INVOKESTATIC, "com/example/agp/app/AppLifecycleManager", "registerAppLifecycle", "(Ljava/lang/String;)V", false)
+                mv.visitMethodInsn(
+                        INVOKESTATIC,
+                        "com/example/agp/applifecycle/api/IApplicationManager",
+                        "registerAppLifecycle",
+                        "(Ljava/lang/String;)V",
+                        false
+                )
             })
         }
 
