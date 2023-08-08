@@ -21,9 +21,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "AGPDemo"
 include ':app'
-include ':applifecycle-annotation'
-include ':applifecycle-compiler'
-include ':applifecycle-api'
-
-
 include ':test1'
+include ':applifecycle-api'
+include ':test2'
