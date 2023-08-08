@@ -97,9 +97,7 @@ abstract class AppLifecycleTask extends DefaultTask {
                 //开始扫描class文件
                 cr.accept(cv, ClassReader.SKIP_DEBUG)
                 byte[] bytes = cw.toByteArray()
-                println("----------------->6")
                 jarOutput.write(bytes)
-                println("----------------->7")
             }
             jarOutput.closeEntry()
         } else {
@@ -123,7 +121,6 @@ abstract class AppLifecycleTask extends DefaultTask {
         MethodVisitor visitMethod(int access, String name,
                                   String desc, String signature,
                                   String[] exception) {
-            println "LifeCycleTransform: visit method: " + name
             MethodVisitor methodVisitor = mClassVisitor.visitMethod(access, name, desc, signature, exception)
             //找到 AppLifeCycleManager里的init()方法
             if ("init" == name) {
