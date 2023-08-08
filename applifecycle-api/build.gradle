@@ -1,0 +1,31 @@
+apply plugin: 'java-library'
+apply plugin: 'maven-publish'
+apply plugin: 'groovy'
+
+dependencies {
+    implementation gradleApi()
+    implementation localGroovy()
+    // 通过api引用，则调用模块只需要引用api模块即可
+    api project(path: ':applifecycle-annotation')
+    annotationProcessor project(path: ':applifecycle-compiler')
+}
+
+sourceCompatibility = "1.8"
+targetCompatibility = "1.8"
+
+publishing {
+    publications { PublicationContainer publicationContainer ->
+        maven(MavenPublication) {
+            from components.java
+            groupId = 'com.govee.lifecycle'
+            artifactId = 'lifecycle-api'
+            version = '1.0.0'
+        }
+    }
+
+    repositories {
+        maven {
+            url = project.rootDir.path + "/repo"
+        }
+    }
+}
