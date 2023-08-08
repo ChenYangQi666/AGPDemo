@@ -45,8 +45,8 @@ abstract class AppLifecycleTask extends DefaultTask {
                             println("scan class in jar ：" + jarEntry.name)
                             iApplicationList.add(jarEntry.name)
                         }
-                        if (jarEntry.name.contains("AppLifecycleManager")) {
-                            println("-------------*****>>>" + jarEntry.name)
+                        if (jarEntry.name.contains("MyApplicationManager")) {
+                            println("111-------------*****>>>" + jarEntry.name)
                         }
                         jarOutput << inputStream
                     }
@@ -70,8 +70,8 @@ abstract class AppLifecycleTask extends DefaultTask {
                         println("scan class in dir:" + relativePath)
                         iApplicationList.add(relativePath)
                     }
-                    if (relativePath.contains("AppLifecycleManager")) {
-                        println("-2------------*****>>>" + relativePath)
+                    if (relativePath.contains("MyApplicationManager")) {
+                        println("222-------------*****>>>" + relativePath)
                         theManagerFile = file
                     }
                     jarOutput << inputStream

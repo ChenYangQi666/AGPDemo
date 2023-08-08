@@ -26,3 +26,4 @@ include ':applifecycle-compiler'
 include ':applifecycle-api'
 
 
+include ':test1'
