@@ -20,11 +20,19 @@ class AppLifecyclePlugin implements Plugin<Project> {
             android.onVariants(android.selector().all(), new Action<Variant>() {
                 @Override
                 void execute(Variant variant) {
-                    TaskProvider<AppLifecycleTask> getAllClassesTask = project.tasks.register("${variant.name}TheRouterGetAllClasses", AppLifecycleTask.class)
+                    TaskProvider<AppLifecycleTask> getAllClassesTask = project.tasks.register(
+                            "${variant.name}AppLifecycleTask",
+                            AppLifecycleTask.class
+                    )
                     variant.artifacts
                             .forScope(ScopedArtifacts.Scope.ALL)
                             .use(getAllClassesTask)
-                            .toTransform(ScopedArtifact.CLASSES.INSTANCE, { it.getAllJars() }, { it.getAllDirectories() }, { it.getOutput() })
+                            .toTransform(
+                                    ScopedArtifact.CLASSES.INSTANCE,
+                                    { it.getAllJars() },
+                                    { it.getAllDirectories() },
+                                    { it.getOutput() }
+                            )
                 }
             })
         } else {
