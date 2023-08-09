@@ -41,15 +41,13 @@ abstract class AppLifecycleTask extends DefaultTask {
                 JarEntry jarEntry = e.nextElement()
                 try {
                     if (isIApplicationManager(jarEntry.name)) {
-                        println("111-------------*****>>>" + jarEntry.name)
-                        // 先存储ApplicationLifecycleManager的字节码文件，后续需要对他进行修改
+                        // 先存储ApplicationLifecycleManager的class，后续需要对他进行修改
                         applicationManagerJar = file.asFile
                         applicationManagerJarEntry = jarEntry
                     } else {
                         jarOutput.putNextEntry(new JarEntry(jarEntry.name))
                         jarFile.getInputStream(jarEntry).withCloseable { inputStream ->
                             if (isIApplicationImplClass(jarEntry.name)) {
-                                println("IApplicationManager=" + jarEntry.name)
                                 iApplicationList.add(jarEntry.name)
                             }
                             jarOutput << inputStream
@@ -57,7 +55,7 @@ abstract class AppLifecycleTask extends DefaultTask {
                         jarOutput.closeEntry()
                     }
                 } catch (Exception e1) {
-                    println("open jar error，" + e1.getMessage())
+                    println(e1.getMessage())
                 }
             }
             jarFile.close()
@@ -72,7 +70,6 @@ abstract class AppLifecycleTask extends DefaultTask {
                 jarOutput.putNextEntry(new JarEntry(relativePath))
                 new FileInputStream(file).withCloseable { inputStream ->
                     if (isIApplicationImplClass(relativePath)) {
-                        println("scan class in dir:" + relativePath)
                         iApplicationList.add(relativePath)
                     }
                     jarOutput << inputStream
@@ -146,6 +143,7 @@ abstract class AppLifecycleTask extends DefaultTask {
                 println "LifeCycleTransform: 开始注入代码：${proxyClassName}"
                 def fullName = proxyClassName.replace("/", ".").substring(0, proxyClassName.length() - 6)
                 println "LifeCycleTransform: full classname = ${fullName}"
+
                 mv.visitLdcInsn(fullName)
                 mv.visitMethodInsn(
                         INVOKESTATIC,
